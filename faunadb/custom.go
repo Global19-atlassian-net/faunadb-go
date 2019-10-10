@@ -48,3 +48,11 @@ func IfPtr(cond, then interface{}, elze *Obj) Expr {
 		"else": elze,
 	}
 }
+
+// Ptr gets a ptr to an object, which is wrapped in a select, without wrapping the actual pointer
+func Ptr(ptr *Obj) Expr {
+	return unescapedObj{
+		"select": wrap(Arr{"value"}),
+		"from": ptr,
+	}
+}
