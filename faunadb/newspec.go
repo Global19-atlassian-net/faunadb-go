@@ -1,10 +1,5 @@
 package faunadb
 
-// Range provides the ability to limit a set based on lower and upper bounds of its natural order.
-func Range(set, from, to interface{}) Expr {
-	return fn3("range", set, "from", from, "to", to)
-}
-
 // Other range-like predicates to be added are RangeLT, RangeLTE, RangeGT, and RangeGTE,
 // which let you bound the set only on one side, or can be combined to specify upper and lower bound exclusivity.
 
@@ -26,12 +21,6 @@ func RangeGT(set, value interface{}) Expr {
 // RangeGTE equals field_gte (greater than or equals)
 func RangeGTE(set, value interface{}) Expr {
 	return fn2("range_gte", set, "value", value)
-}
-
-// Reduce function which may be used on arrays, pages or sets. This will behave similarly to foldLeft or reduce in functional languages.
-// Reduce(set/array/page, init, fn)
-func Reduce(coll, init, lambda interface{}) Expr {
-	return fn3("reduce", lambda, "initial", init, "collection", coll)
 }
 
 // Aliases for commonly used reducers, which may be used on arrays, pages or sets.

@@ -9,7 +9,7 @@ import (
 // FAUNA_ROOT_KEY="dummy" go test github.com/fauna/faunadb-go/faunadb -run TestSerialize
 
 // Range(set, lowerBound, upperBound)
-func TestSerializeRange(t *testing.T) {
+func TestSerializeRange2(t *testing.T) {
 	assertJSON(t,
 		Range(Match("users_by_name"), "Brown", "Smith"),
 		`{"from":"Brown","range":{"match":"users_by_name"},"to":"Smith"}`,
@@ -76,19 +76,6 @@ func TestSerializeTakeSet(t *testing.T) {
 	assertJSON(t,
 		Take(2, SetRefV{ObjectV{"name": StringV("a")}}),
 		`{"collection":{"@set":{"name":"a"}},"take":2}`,
-	)
-}
-
-// Reduce(set/array/page, init, fn)
-func TestSerializeReduce(t *testing.T) {
-	assertJSON(t,
-		Reduce(Arr{1, 2, 3}, 0, Lambda("x", Var("x"))),
-		`{"collection":[1,2,3],"initial":0,"reduce":{"expr":{"var":"x"},"lambda":"x"}}`,
-	)
-
-	assertJSON(t,
-		Reduce(SetRefV{ObjectV{"name": StringV("a")}}, 0, Lambda("x", Var("x"))),
-		`{"collection":{"@set":{"name":"a"}},"initial":0,"reduce":{"expr":{"var":"x"},"lambda":"x"}}`,
 	)
 }
 
