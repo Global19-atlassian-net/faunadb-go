@@ -161,6 +161,15 @@ func Precision(precision interface{}) OptionalParameter {
 	}
 }
 
+// ConflictResolver is an optional parameter that specifies the lambda for resolving Merge conflicts
+//
+// Functions that accept this optional parameter are: Merge
+func ConflictResolver(lambda interface{}) OptionalParameter {
+	return func(fn unescapedObj) {
+		fn["lambda"] = wrap(lambda)
+	}
+}
+
 // Normalizer is a string optional parameter that specifies the normalization function for casefold operation.
 //
 // Functions that accept this optional parameter are: Casefold.
@@ -609,6 +618,18 @@ func CreateFunction(params interface{}) Expr { return fn1("create_function", par
 // See: https://app.fauna.com/documentation/reference/queryapi#write-functions
 func CreateRole(params interface{}) Expr { return fn1("create_role", params) }
 
+// MoveDatabase moves a database to a new hierachy.
+//
+// Parameters:
+//  from Object - Source reference to be moved.
+//  to Object   - New parent database reference.
+//
+// Returns:
+//  Object - instance.
+//
+// See: https://app.fauna.com/documentation/reference/queryapi#write-functions
+func MoveDatabase(from interface{}, to interface{}) Expr { return fn2("move_database", from, "to", to) }
+
 // Update updates the provided document.
 //
 // Parameters:
@@ -673,6 +694,22 @@ func Insert(ref, ts, action, params interface{}) Expr {
 func Remove(ref, ts, action interface{}) Expr { return fn3("remove", ref, "ts", ts, "action", action) }
 
 // String
+
+// Format formats values into a string.
+//
+// Parameters:
+//  format string - format a string with format specifiers.
+//
+// Optional parameters:
+//  values []string - list of values to format into string.
+//
+// Returns:
+//  string - A string.
+//
+// See: https://app.fauna.com/documentation/reference/queryapi#string-functions
+func Format(format interface{}, values ...interface{}) Expr {
+	return fn2("format", format, "values", varargs(values...))
+}
 
 // Concat concatenates a list of strings into a single string.
 //
@@ -984,6 +1021,35 @@ func MatchTerm(ref, terms interface{}) Expr { return fn2("match", ref, "terms", 
 // See: https://app.fauna.com/documentation/reference/queryapi#sets
 func Union(sets ...interface{}) Expr { return fn1("union", varargs(sets...)) }
 
+// Merge two or more objects..
+//
+// Parameters:
+//   merge merge the first object.
+//   with the second object or a list of objects
+//   lambda a lambda to resolve possible conflicts
+//
+// Returns:
+// merged object
+//
+func Merge(merge interface{}, with interface{}, lambda ...OptionalParameter) Expr {
+	return fn2("merge", merge, "with", with, lambda...)
+}
+
+// Reduce function applies a reducer Lambda function serially to each member of the collection to produce a single value.
+//
+// Parameters:
+// lambda     Expr  - The accumulator function
+// initial    Expr  - The initial value
+// collection Expr  - The collection to be reduced
+//
+// Returns:
+// Expr
+//
+// See: https://docs.fauna.com/fauna/current/api/fql/functions/reduce
+func Reduce(lambda, initial interface{}, collection interface{}) Expr {
+	return fn3("reduce", lambda, "initial", initial, "collection", collection)
+}
+
 // Intersection returns the set of documents that are present in all of the specified sets.
 //
 // Parameters:
@@ -1029,6 +1095,21 @@ func Distinct(set interface{}) Expr { return fn1("distinct", set) }
 //
 // See: https://app.fauna.com/documentation/reference/queryapi#sets
 func Join(source, target interface{}) Expr { return fn2("join", source, "with", target) }
+
+// Range filters the set based on the lower/upper bounds (inclusive).
+//
+// Parameters:
+//  set SetRef - Set to be filtered.
+//  from - lower bound.
+//  to - upper bound
+//
+// Returns:
+//  SetRef
+//
+// See: https://app.fauna.com/documentation/reference/queryapi#sets
+func Range(set interface{}, from interface{}, to interface{}) Expr {
+	return fn3("range", set, "from", from, "to", to)
+}
 
 // Authentication
 

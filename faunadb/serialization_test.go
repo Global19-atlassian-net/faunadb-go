@@ -374,6 +374,13 @@ func TestSerializeCreateRole(t *testing.T) {
 	)
 }
 
+func TestSerializeMoveDatabase(t *testing.T) {
+	assertJSON(t,
+		MoveDatabase(Database("source"), Database("dest")),
+		`{"move_database":{"database":"source"},"to":{"database":"dest"}}`,
+	)
+}
+
 func TestSerializeNull(t *testing.T) {
 	assertJSON(t, Null(), `null`)
 }
@@ -566,6 +573,13 @@ func TestSerializePaginateWithParameters(t *testing.T) {
 		),
 		`{"after":{"@ref":"databases/test"},"before":{"@ref":"databases/test10"},"events":true,`+
 			`"paginate":{"@ref":"databases"},"size":2,"sources":true,"ts":10}`,
+	)
+}
+
+func TestSerializeFormat(t *testing.T) {
+	assertJSON(t,
+		Format("You have %d points left", 89),
+		`{"format":"You have %d points left","values":89}`,
 	)
 }
 
@@ -769,6 +783,20 @@ func TestSerializeUnion(t *testing.T) {
 	)
 }
 
+func TestSerializeMerge(t *testing.T) {
+	assertJSON(t, Merge(Obj{"x": 24}, Obj{"y": 25}), "{\"merge\":{\"object\":{\"x\":24}},\"with\":{\"object\":{\"y\":25}}}")
+	assertJSON(t, Merge(Obj{"points": 900}, Obj{"name": "Trevor"}), "{\"merge\":{\"object\":{\"points\":900}},\"with\":{\"object\":{\"name\":\"Trevor\"}}}")
+	assertJSON(t, Merge(Obj{}, Obj{"id": 9}), "{\"merge\":{\"object\":{}},\"with\":{\"object\":{\"id\":9}}}")
+	assertJSON(t, Merge(Obj{"x": 24}, Obj{"y": 25}, ConflictResolver(Lambda(Arr{"key", "left", "right"}, Var("right")))), "{\"lambda\":{\"expr\":{\"var\":\"right\"},\"lambda\":[\"key\",\"left\",\"right\"]},\"merge\":{\"object\":{\"x\":24}},\"with\":{\"object\":{\"y\":25}}}")
+}
+
+func TestSerializeReduce(t *testing.T) {
+	assertJSON(t,
+		Reduce(Lambda(Arr{"accum", "value"}, Add(Var("accum"), Var("value"))), 0, []int{10, 20, 30}),
+		`{"collection":[10,20,30],"initial":0,"reduce":{"expr":{"add":[{"var":"accum"},{"var":"value"}]},"lambda":["accum","value"]}}`,
+	)
+}
+
 func TestSerializeIntersection(t *testing.T) {
 	assertJSON(t,
 		Intersection(Arr{
@@ -820,6 +848,17 @@ func TestSerializeJoin(t *testing.T) {
 		),
 		`{"join":{"match":{"@ref":"indexes/spellbooks_by_owner"},"terms":{"@ref":"collections/characters/104979509695139637"}},`+
 			`"with":{"@ref":"indexes/spells_by_spellbook"}}`,
+	)
+}
+
+func TestSerializeRange(t *testing.T) {
+	assertJSON(t,
+		Range(
+			MatchTerm(Ref("indexes/spellbooks_by_owner"), Ref("collections/characters/104979509695139637")),
+			10,
+			50,
+		),
+		`{"from":10,"range":{"match":{"@ref":"indexes/spellbooks_by_owner"},"terms":{"@ref":"collections/characters/104979509695139637"}},"to":50}`,
 	)
 }
 

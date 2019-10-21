@@ -765,6 +765,34 @@ func (s *ClientTestSuite) TestUnion() {
 	s.Require().Equal([]f.RefV{magicMissile, fireball, faerieFire}, spells)
 }
 
+func (s *ClientTestSuite) TestMerge() {
+	var b1, b2, b3, b4 bool
+
+	s.queryAndDecode(f.Equals(f.Merge(f.Obj{"x": 1, "y": 2}, f.Obj{"z": 3}), f.Obj{"x": 1, "y": 2, "z": 3}), &b1)
+	s.queryAndDecode(f.Equals(f.Merge(f.Obj{}, f.Obj{"a": 1}), f.Obj{"a": 1}), &b2)
+	s.queryAndDecode(f.Equals(f.Merge(f.Obj{"a": 1}, f.Arr{f.Obj{"b": 2}, f.Obj{"c": 3}, f.Obj{"a": 5}}), f.Obj{"a": 5, "b": 2, "c": 3}), &b3)
+	s.queryAndDecode(f.Equals(f.Merge(f.Obj{"a": 1, "b": 2, "c": 3}, f.Obj{
+		"a": "a", "b": "b", "c": "c"}, f.ConflictResolver(f.Lambda(f.Arr{"key", "left", "right"}, f.Var("right")))), f.Obj{"a": "a", "b": "b", "c": "c"}), &b4)
+
+	s.Require().True(b1)
+	s.Require().True(b2)
+	s.Require().True(b3)
+	s.Require().True(b4)
+}
+
+func (s *ClientTestSuite) TestReduce() {
+	var i int
+	var str string
+	arrInts := [...]int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	arrStrings := [...]string{"Fauna", "DB", " ", "rocks"}
+
+	s.queryAndDecode(f.Reduce(f.Lambda(f.Arr{"accum", "value"}, f.Add(f.Var("accum"), f.Var("value"))), 0, arrInts), &i)
+	s.Require().Equal(45, i)
+
+	s.queryAndDecode(f.Reduce(f.Lambda(f.Arr{"accum", "value"}, f.Concat(f.Arr{f.Var("accum"), f.Var("value")})), "", arrStrings), &str)
+	s.Require().Equal("FaunaDB rocks", str)
+}
+
 func (s *ClientTestSuite) TestIntersection() {
 	var spells []f.RefV
 
@@ -821,6 +849,46 @@ func (s *ClientTestSuite) TestJoin() {
 
 	s.Require().NoError(res.At(dataField).Get(&spells))
 	s.Require().Equal([]f.RefV{fireball}, spells)
+}
+
+func (s *ClientTestSuite) TestRange() {
+	data := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
+	var arr f.Arr
+
+	col := s.queryForRef(f.CreateCollection(f.Obj{"name": "range_test"}))
+	s.queryForRef(f.CreateIndex(f.Obj{"name": "range_idx", "source": col, "active": true, "values": f.Arr{f.Obj{"field": f.Arr{"data", "value"}}}}))
+	s.query(
+		f.Foreach(data, f.Lambda("x", f.Create(col, f.Obj{"data": f.Obj{"value": f.Var("x")}}))),
+	)
+
+	m := f.Match(f.Index("range_idx"))
+
+	s.queryAndDecode(f.Select("data", f.Paginate(f.Range(m, 3, 8))), &arr)
+	s.Require().Equal(f.Arr{f.LongV(3), f.LongV(4), f.LongV(5), f.LongV(6), f.LongV(7), f.LongV(8)}, arr)
+
+	s.queryAndDecode(f.Select("data", f.Paginate(f.Range(m, 17, 18))), &arr)
+	s.Require().Equal(f.Arr{f.LongV(17), f.LongV(18)}, arr)
+
+	s.queryAndDecode(f.Select("data", f.Paginate(f.Range(m, 19, 0))), &arr)
+	s.Require().Equal(f.Arr{}, arr)
+}
+
+func (s *ClientTestSuite) TestEvalFormatExpression() {
+	var str string
+
+	s.queryAndDecode(
+		f.Format("%2$s%1$s %3$s", "DB", "Fauna", "rocks"),
+		&str,
+	)
+
+	s.Require().Equal("FaunaDB rocks", str)
+
+	s.queryAndDecode(
+		f.Format("%d %s %.2f %%", 34, "tEsT ", 3.14159),
+		&str,
+	)
+
+	s.Require().Equal("34 tEsT  3.14 %", str)
 }
 
 func (s *ClientTestSuite) TestEvalConcatExpression() {
@@ -1873,6 +1941,42 @@ func (s *ClientTestSuite) TestCreateRole() {
 
 	s.adminQueryAndDecode(f.Exists(f.Role(name)), &exists)
 	s.Require().True(exists)
+}
+
+func (s *ClientTestSuite) TestMoveDatabase() {
+	srcDb := f.RandomStartingWith("db_move_src")
+	destDb := f.RandomStartingWith("db_move_dest")
+	var srcDbRef, destDbRef f.RefV
+
+	key, err := f.CreateKeyWithRole("admin")
+	s.Require().NoError(err)
+
+	adminClient := s.client.NewSessionClient(f.GetSecret(key))
+
+	destDbClient := s.createNewDatabase(adminClient, destDb)
+	_ = s.createNewDatabase(adminClient, srcDb)
+
+	value1, err := adminClient.Query(f.Get(f.Database(destDb)))
+	s.Require().NoError(
+		value1.At(refField).Get(&destDbRef),
+	)
+
+	value2, err := adminClient.Query(f.Get(f.Database(srcDb)))
+	s.Require().NoError(
+		value2.At(refField).Get(&srcDbRef),
+	)
+	s.Require().NoError(err)
+
+	_, err = adminClient.Query(f.MoveDatabase(srcDbRef, destDbRef))
+	s.Require().NoError(err)
+
+	b, err := destDbClient.Query(f.Exists(srcDbRef))
+	s.Require().NoError(err)
+	s.Require().Equal(f.BooleanV(true), b)
+
+	b, err = adminClient.Query(f.Exists(srcDbRef))
+	s.Require().NoError(err)
+	s.Require().Equal(f.BooleanV(false), b)
 }
 
 func (s *ClientTestSuite) TestCallFunction() {

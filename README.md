@@ -10,11 +10,9 @@ A Go lang driver for [FaunaDB](https://fauna.com/).
 ## Supported Go Versions
 
 Currently, the driver is tested on:
-- 1.8
-- 1.9
-- 1.10
 - 1.11
 - 1.12
+- 1.13
 
 ## Using the Driver
 
@@ -42,7 +40,7 @@ go get gopkg.in/fauna/faunadb-go.v2/faunadb
 To get a specific version when using `dep`, use:
 
 ```bash
-dep ensure -add github.com/fauna/faunadb-go/faunadb@v2.0.0
+dep ensure -add github.com/fauna/faunadb-go/faunadb@v2.9.0
 ```
 
 ### Importing
