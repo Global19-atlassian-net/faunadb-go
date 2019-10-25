@@ -1,28 +1,5 @@
 package faunadb
 
-// Other range-like predicates to be added are RangeLT, RangeLTE, RangeGT, and RangeGTE,
-// which let you bound the set only on one side, or can be combined to specify upper and lower bound exclusivity.
-
-// RangeLT equals field_lt (less than)
-func RangeLT(set, value interface{}) Expr {
-	return fn2("range_lt", set, "value", value)
-}
-
-// RangeLTE equals field_lte (less than or equals)
-func RangeLTE(set, value interface{}) Expr {
-	return fn2("range_lte", set, "value", value)
-}
-
-// RangeGT equals field_gt (greater than)
-func RangeGT(set, value interface{}) Expr {
-	return fn2("range_gt", set, "value", value)
-}
-
-// RangeGTE equals field_gte (greater than or equals)
-func RangeGTE(set, value interface{}) Expr {
-	return fn2("range_gte", set, "value", value)
-}
-
 // Aliases for commonly used reducers, which may be used on arrays, pages or sets.
 // Note: Min, Max already exist
 func Count(coll interface{}) Expr { return fn1("count", coll) }
@@ -43,3 +20,8 @@ func Reverse(coll interface{}) Expr {
 func Documents(coll interface{}) Expr {
 	return fn1("documents", coll)
 }
+
+
+func StartsWith(value, search interface{}) Expr { return fn2("startswith", value, "search", search) }
+func ContainsStr(value, search interface{}) Expr { return fn2("containsstr", value, "search", search) }
+func EndsWith(value, search interface{}) Expr { return fn2("endswith", value, "search", search) }

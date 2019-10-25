@@ -21,22 +21,24 @@ func TestSerializeRange2(t *testing.T) {
 	)
 }
 
-func TestSerializeRangeComparisons(t *testing.T) {
+func TestSerializeStartsWithComparisons(t *testing.T) {
 	assertJSON(t,
-		RangeLT(Match("coll_by_x"), 1),
-		`{"range_lt":{"match":"coll_by_x"},"value":1}`,
+		StartsWith("testing", "test"),
+		`{"search":"test","startswith":"testing"}`,
 	)
+}
+
+func TestSerializeEndsWithComparisons(t *testing.T) {
 	assertJSON(t,
-		RangeLTE(Match("coll_by_x"), 1),
-		`{"range_lte":{"match":"coll_by_x"},"value":1}`,
+		EndsWith("testing", "ing"),
+		`{"endswith":"testing","search":"ing"}`,
 	)
+}
+
+func TestSerializeContainsStrComparisons(t *testing.T) {
 	assertJSON(t,
-		RangeGT(Match("coll_by_x"), 1),
-		`{"range_gt":{"match":"coll_by_x"},"value":1}`,
-	)
-	assertJSON(t,
-		RangeGTE(Match("coll_by_x"), 1),
-		`{"range_gte":{"match":"coll_by_x"},"value":1}`,
+		ContainsStr("testing", "esti"),
+		`{"containsstr":"testing","search":"esti"}`,
 	)
 }
 
